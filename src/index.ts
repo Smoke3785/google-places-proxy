@@ -133,4 +133,16 @@ app.listen(port, () => {
   console.log(
     `${getTimestamp()} ► running on http://localhost:${port}/places/:placeId?key=YOUR_GOOGLE_KEY`
   );
+
+  const space = " ".repeat(30);
+
+  console.log(
+    `${getTimestamp()} ► CONFIGURATION`,
+    `\n${space}${chalk.blue("CACHE_FILE")}: ${CACHE_FILE?.replace(
+      process.cwd(),
+      ""
+    )}\n${space}${chalk.blue("TTL")}: ${TTL}ms\n${space}${chalk.blue(
+      "PORT"
+    )}: ${port}`
+  );
 });
