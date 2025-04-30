@@ -1,6 +1,5 @@
 {
   "name": "google-places-proxy",
-  "packageManager": "yarn@4.4.1",
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx --watch src/index.ts"
