@@ -149,3 +149,14 @@ export function getLatencyColor(ms: number) {
 export function getTimestamp() {
   return chalk.bgBlack(`[${new Date().toISOString()}]`);
 }
+
+export function hr(message: string) {
+  const width = process.stdout.columns || 80;
+  const emptySpace = message?.length;
+
+  const left = " ".repeat((width - emptySpace) / 2);
+  const right = " ".repeat(width - emptySpace - left.length);
+  const hr = "─".repeat(width);
+
+  return `${hr}${left}${message}${right}${hr}`;
+}

@@ -5,11 +5,8 @@ import { CACHE_FILE } from "./config";
 
 // ─── FILE-BACKED CACHE SETUP ────────────────────────────────────────────────────
 type RawCache = Record<
-  string, // googleKey
-  Record<
-    string, // placeId
-    { data: PlaceDetails; expires: number }
-  >
+  string,
+  Record<string, { data: PlaceDetails; expires: number }>
 >;
 
 let rawCache: RawCache = {};
@@ -20,12 +17,10 @@ try {
   } else {
     console.log(`${getTimestamp()} 🗑️ Cache file not found, starting fresh.`);
   }
-  console.log("");
 } catch (err) {
   console.warn("⚠️ Failed to parse cache file, starting fresh:", err);
 }
 
-// In-memory maps for fast lookup
 export const cache = new Map<
   string,
   Map<string, { data: PlaceDetails; expires: number }>
@@ -39,7 +34,6 @@ for (const [key, placeMap] of Object.entries(rawCache)) {
   cache.set(key, m);
 }
 
-// Persist helper
 export function persistCache() {
   const dump: RawCache = {};
   for (const [googleKey, placeMap] of cache.entries()) {

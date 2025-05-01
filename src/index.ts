@@ -2,14 +2,16 @@
 import express from "express";
 import chalk from "chalk";
 
-import { PORT, CACHE_FILE, TTL } from "./config";
 import { cache, persistCache } from "./cache";
+import { initializeDatabase, logRequest, getRequestLogs } from "./database";
+import { CACHE_FILE, TTL, getConfigLog } from "./config";
 import {
   normalizeGoogleApiResponse,
   getLatencyColor,
   getTimestamp,
   getCodeColor,
   isOpenNow,
+  hr,
 } from "./utils";
 
 // Types
@@ -21,6 +23,7 @@ app.use((req, res, next) => {
   const start = Date.now();
 
   res.locals.cacheHit = undefined;
+  res.locals.forwarded = false;
   res.locals.debug = [];
 
   console.log(
@@ -50,6 +53,24 @@ app.use((req, res, next) => {
         ...res.locals.debug
       );
     }
+
+    if (res.locals.logMe === true) {
+      logRequest({
+        googleKey: req.query.key as string,
+        forwarded: res.locals.forwarded,
+        cacheHit: res.locals.cacheHit,
+        placeId: req.params.placeId,
+        statusCode: res.statusCode,
+        error: res.locals.error,
+        timestamp: start,
+      }).catch((err) => {
+        console.error(
+          `${getTimestamp()} ${chalk.red("ERROR")}`,
+          "Failed to log request",
+          err
+        );
+      });
+    }
   });
 
   next();
@@ -68,12 +89,19 @@ app.get("/health", (req, res) => {
   });
 });
 
-// @ts-ignore
+app.get("/stats", async (req, res) => {
+  const stats = await getRequestLogs();
+  res.json(stats);
+});
+
 app.get("/places/:placeId", async (req, res) => {
+  res.locals.logMe = true;
+
   const placeId = req.params.placeId;
   const googleKey = (req.query.key as string) || "";
   if (!googleKey) {
-    return res.status(400).json({ error: "Missing API key in `?key=`" });
+    res.status(400).json({ error: "Missing API key in `?key=`" });
+    return;
   }
 
   let keyMap = cache.get(googleKey);
@@ -90,18 +118,21 @@ app.get("/places/:placeId", async (req, res) => {
         copy.opening_hours.open_now = isOpenNow(copy.opening_hours);
       }
 
-      return res.json(copy);
+      res.json(copy);
+      return;
     }
   }
 
   res.locals.cacheHit = false;
+  res.locals.forwarded = true;
 
   const urlString = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${googleKey}`;
   const url = new URL(urlString);
 
   const upstream = await fetch(url.toString());
   if (!upstream.ok) {
-    return res.status(upstream.status).send(await upstream.text());
+    res.status(upstream.status).send(await upstream.text());
+    return;
   }
 
   const { data, error } = await normalizeGoogleApiResponse<PlaceDetails>(
@@ -110,7 +141,8 @@ app.get("/places/:placeId", async (req, res) => {
 
   if (error || !data) {
     res.locals.debug.push(urlString, error);
-    return res.status(500).json({ error });
+    res.status(500).json({ error });
+    return;
   }
 
   if (data.opening_hours) {
@@ -125,24 +157,19 @@ app.get("/places/:placeId", async (req, res) => {
   keyMap.set(placeId, { data, expires: now + TTL });
   persistCache();
 
-  return res.json(data);
+  res.json(data);
+  return;
 });
 
-const port = process.env.PORT ? +process.env.PORT : 3000;
-app.listen(port, () => {
-  console.log(
-    `${getTimestamp()} ► running on http://localhost:${port}/places/:placeId?key=YOUR_GOOGLE_KEY`
-  );
+(async () => {
+  await initializeDatabase();
+  const port = process.env.PORT ? +process.env.PORT : 3000;
+  app.listen(port, () => {
+    console.log(
+      `${getTimestamp()} ►  running on http://localhost:${port}/places/:placeId?key=YOUR_GOOGLE_KEY`
+    );
 
-  const space = " ".repeat(30);
-
-  console.log(
-    `${getTimestamp()} ► CONFIGURATION`,
-    `\n${space}${chalk.blue("CACHE_FILE")}: ${CACHE_FILE?.replace(
-      process.cwd(),
-      ""
-    )}\n${space}${chalk.blue("TTL")}: ${TTL}ms\n${space}${chalk.blue(
-      "PORT"
-    )}: ${port}`
-  );
-});
+    console.log(`${getTimestamp()} ►  CONFIGURATION`, getConfigLog());
+    console.log(hr("SERVER LIVE"));
+  });
+})();
