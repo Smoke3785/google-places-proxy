@@ -2,9 +2,10 @@
 import express from "express";
 import chalk from "chalk";
 
-import { cache, persistCache } from "./cache";
 import { initializeDatabase, logRequest, getRequestLogs } from "./database";
+import { getPlaceData, calculateNextRelevantTime } from "./services";
 import { CACHE_FILE, TTL, getConfigLog } from "./config";
+import { cache, persistCache } from "./cache";
 import {
   normalizeGoogleApiResponse,
   getLatencyColor,
@@ -109,60 +110,33 @@ app.get("/places/:placeId", async (req, res) => {
     return;
   }
 
-  let keyMap = cache.get(googleKey);
-  const now = Date.now();
+  const { data, error } = await getPlaceData({
+    googleKey,
+    placeId,
+  });
 
-  if (keyMap) {
-    const entry = keyMap.get(placeId);
-
-    if (entry && entry.expires > now) {
-      res.locals.cacheHit = true;
-
-      const copy = JSON.parse(JSON.stringify(entry.data)) as PlaceDetails;
-      if (copy.opening_hours) {
-        copy.opening_hours.open_now = isOpenNow(copy.opening_hours);
-      }
-
-      res.json(copy);
-      return;
-    }
-  }
-
-  res.locals.cacheHit = false;
-  res.locals.forwarded = true;
-
-  const urlString = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${googleKey}`;
-  const url = new URL(urlString);
-
-  const upstream = await fetch(url.toString());
-  if (!upstream.ok) {
-    res.status(upstream.status).send(await upstream.text());
+  if (error) {
+    res.status(error.code).json({
+      error: {
+        message: error.message,
+        code: error.code,
+      },
+    });
     return;
   }
 
-  const { data, error } = await normalizeGoogleApiResponse<PlaceDetails>(
-    upstream
-  );
+  const { locals, placeData } = data;
+  const { cacheHit, forwarded } = locals;
 
-  if (error || !data) {
-    res.locals.debug.push(urlString, error);
-    res.status(500).json({ error });
-    return;
+  res.locals.forwarded = forwarded;
+  res.locals.cacheHit = cacheHit;
+  console.log(req.query);
+
+  if (Object.keys(req?.query).includes("nextTimeString")) {
+    placeData.nextRelevantTime = calculateNextRelevantTime(placeData);
   }
 
-  if (data.opening_hours) {
-    data.opening_hours.open_now = isOpenNow(data.opening_hours);
-  }
-
-  if (!keyMap) {
-    keyMap = new Map();
-    cache.set(googleKey, keyMap);
-  }
-
-  keyMap.set(placeId, { data, expires: now + TTL });
-  persistCache();
-
-  res.json(data);
+  res.json(placeData);
   return;
 });
 

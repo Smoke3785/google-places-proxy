@@ -2,7 +2,8 @@
   "name": "google-places-proxy",
   "scripts": {
     "start": "tsx src/index.ts",
-    "dev": "tsx --watch src/index.ts"
+    "dev": "tsx --watch src/index.ts",
+    "develop": "tsx --watch src/index.ts"
   },
   "dependencies": {
     "@iliad.dev/ts-utils": "^0.0.35",
