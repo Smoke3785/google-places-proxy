@@ -84,6 +84,7 @@ function computeNextLabel(nextDate: Date): string {
 }
 
 export type ParsedGoogleBusinessOpeningHours = {
+  nextDateHumanReadableString: string;
   nextDate: Date | null;
   nextLabel: string;
   openNow: boolean;
@@ -96,7 +97,12 @@ export function calculateNextRelevantTime(
 ): ParsedGoogleBusinessOpeningHours {
   const oh = details.opening_hours;
   if (!oh || !oh.periods) {
-    return { openNow: false, nextDate: null, nextLabel: "" };
+    return {
+      nextDateHumanReadableString: "",
+      openNow: false,
+      nextDate: null,
+      nextLabel: "",
+    };
   }
 
   // Determine if currently open (in America/New_York) via luxon-based util
@@ -116,5 +122,38 @@ export function calculateNextRelevantTime(
 
   const nextLabel = nextDate ? computeNextLabel(nextDate) : "";
 
-  return { openNow, nextDate, nextLabel };
+  const nextDateHumanReadableString = calculateNextDateHumanReadableString({
+    nextLabel,
+    nextDate,
+    openNow,
+  });
+
+  return { nextDateHumanReadableString, openNow, nextDate, nextLabel };
+}
+
+function calculateNextDateHumanReadableString({
+  openNow,
+  nextDate,
+  nextLabel,
+}: {
+  nextDate: Date | null;
+  nextLabel: string;
+  openNow: boolean;
+}): string {
+  const formattedTimestamp =
+    nextDate?.toLocaleTimeString(undefined, {
+      minute: "2-digit",
+      hour: "2-digit",
+    }) || "";
+
+  let nextDateHumanReadableString: string = "";
+  if (!openNow) {
+    nextDateHumanReadableString += "Closed. Opening at";
+  } else {
+    nextDateHumanReadableString += "Open until";
+  }
+  nextDateHumanReadableString += ` ${formattedTimestamp} `;
+  nextDateHumanReadableString += openNow ? "today" : nextLabel;
+
+  return nextDateHumanReadableString;
 }
