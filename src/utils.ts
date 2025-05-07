@@ -1,4 +1,6 @@
-import { type StandardResponse } from "@iliad.dev/ts-utils";
+import { DateTime } from "luxon";
+
+import type { StandardResponse } from "@iliad.dev/ts-utils";
 import type { OpeningHours } from "./types";
 
 import chalk from "chalk";
@@ -94,7 +96,11 @@ export function parseHHMM(s: string): number {
   return parseInt(s.slice(0, 2), 10) * 60 + parseInt(s.slice(2), 10);
 }
 
-export function isOpenNow(oh: OpeningHours, now: Date = new Date()): boolean {
+function getTimeNow(): Date {
+  return DateTime.now().setZone("America/New_York").toJSDate();
+}
+
+export function isOpenNow(oh: OpeningHours, now: Date = getTimeNow()): boolean {
   if (!oh.periods) return false;
   const today = now.getDay(); // 0=Sun…6=Sat
   const nowMins = now.getHours() * 60 + now.getMinutes();
@@ -142,12 +148,14 @@ function getLatencyTimeColor(ms: number): string {
 
 export function getLatencyColor(ms: number) {
   const color = getLatencyTimeColor(ms);
+
   if (color === "orange") return chalk.hex("#FFA500");
   return chalk[color];
 }
 
 export function getTimestamp() {
-  return chalk.bgBlack(`[${new Date().toISOString()}]`);
+  const now = getTimeNow();
+  return chalk.bgBlack(`[${now.toISOString()}]`);
 }
 
 export function hr(message: string) {
