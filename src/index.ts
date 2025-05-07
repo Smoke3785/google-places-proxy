@@ -130,7 +130,6 @@ app.get("/places/:placeId", async (req, res) => {
 
   res.locals.forwarded = forwarded;
   res.locals.cacheHit = cacheHit;
-  console.log(req.query);
 
   if (Object.keys(req?.query).includes("nextTimeString")) {
     placeData.nextRelevantTime = calculateNextRelevantTime(placeData);
