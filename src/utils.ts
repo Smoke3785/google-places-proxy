@@ -96,7 +96,7 @@ export function parseHHMM(s: string): number {
   return parseInt(s.slice(0, 2), 10) * 60 + parseInt(s.slice(2), 10);
 }
 
-function getTimeNow(): Date {
+export function getTimeNow(): Date {
   return DateTime.now().setZone("America/New_York").toJSDate();
 }
 

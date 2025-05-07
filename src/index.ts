@@ -12,6 +12,7 @@ import {
   getCodeColor,
   isOpenNow,
   hr,
+  getTimeNow,
 } from "./utils";
 
 // Types
@@ -91,7 +92,9 @@ app.get("/health", (req, res) => {
 
 app.get("/stats", async (req, res) => {
   const stats = await getRequestLogs();
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const now = getTimeNow();
+
+  const timeZone = now.toString().split("GMT")[1];
   res.json({ timeZone, stats });
 });
 
@@ -100,6 +103,7 @@ app.get("/places/:placeId", async (req, res) => {
 
   const placeId = req.params.placeId;
   const googleKey = (req.query.key as string) || "";
+
   if (!googleKey) {
     res.status(400).json({ error: "Missing API key in `?key=`" });
     return;
