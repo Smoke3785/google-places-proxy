@@ -1,9 +1,10 @@
 import { DateTime } from "luxon";
+import chalk from "chalk";
 
+// Types
 import type { StandardResponse } from "@iliad.dev/ts-utils";
 import type { OpeningHours } from "./types";
 
-import chalk from "chalk";
 type NormalizedGoogleApiResponse<T> = Promise<
   StandardResponse<
     T,
