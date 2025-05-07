@@ -91,7 +91,8 @@ app.get("/health", (req, res) => {
 
 app.get("/stats", async (req, res) => {
   const stats = await getRequestLogs();
-  res.json(stats);
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  res.json({ timeZone, stats });
 });
 
 app.get("/places/:placeId", async (req, res) => {
