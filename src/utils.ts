@@ -100,19 +100,28 @@ export function getTimeNow(): Date {
   return DateTime.now().setZone("America/New_York").toJSDate();
 }
 
-export function isOpenNow(oh: OpeningHours, now: Date = getTimeNow()): boolean {
+export function isOpenNow(
+  oh: OpeningHours,
+  dt: DateTime = DateTime.now().setZone("America/New_York")
+): boolean {
   if (!oh.periods) return false;
-  const today = now.getDay(); // 0=Sun…6=Sat
-  const nowMins = now.getHours() * 60 + now.getMinutes();
+
+  // Google API: day 0=Sunday…6=Saturday
+  // Luxon: weekday 1=Monday…7=Sunday => weekday % 7 gives 0=Sunday…6=Saturday
+  const today = dt.weekday % 7;
+  const nowMins = dt.hour * 60 + dt.minute;
 
   for (const p of oh.periods) {
-    const oD = p.open.day,
-      cD = p.close.day;
-    const oM = parseHHMM(p.open.time),
-      cM = parseHHMM(p.close.time);
+    const oD = p.open.day;
+    const cD = p.close.day;
+    const oM = parseHHMM(p.open.time);
+    const cM = parseHHMM(p.close.time);
 
     if (oD === cD) {
-      if (today === oD && nowMins >= oM && nowMins < cM) return true;
+      // normal same-day hours
+      if (today === oD && nowMins >= oM && nowMins < cM) {
+        return true;
+      }
     } else {
       // overnight span
       if ((today === oD && nowMins >= oM) || (today === cD && nowMins < cM)) {
@@ -120,6 +129,7 @@ export function isOpenNow(oh: OpeningHours, now: Date = getTimeNow()): boolean {
       }
     }
   }
+
   return false;
 }
 
