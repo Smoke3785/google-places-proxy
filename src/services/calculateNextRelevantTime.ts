@@ -2,7 +2,7 @@ import { getTimeNow, isOpenNow } from "../utils";
 import { DateTime } from "luxon";
 
 // Types
-import type { PlaceDetails } from "../types";
+import type { NextDateHumanReadableObject, PlaceDetails } from "../types";
 
 // Returns a string "HHMM" for the given DateTime in America/New_York
 function getCurrentTimeString(dt: DateTime): string {
@@ -69,6 +69,7 @@ function computeNextLabel(nextDate: Date): string {
 }
 
 export type ParsedGoogleBusinessOpeningHours = {
+  nextDateHumanReadableObject: NextDateHumanReadableObject;
   nextDateHumanReadableString: string;
   nextDate: Date | null;
   nextLabel: string;
@@ -83,10 +84,15 @@ export function calculateNextRelevantTime(
   const oh = details.opening_hours;
   if (!oh || !oh.periods) {
     return {
-      nextDateHumanReadableString: "",
       openNow: false,
       nextDate: null,
       nextLabel: "",
+      nextDateHumanReadableString: "",
+      nextDateHumanReadableObject: {
+        nextTimeString: "",
+        status: "open",
+        nextTime: "",
+      },
     };
   }
 
@@ -94,7 +100,7 @@ export function calculateNextRelevantTime(
   const openNow = isOpenNow(oh);
 
   // For each period, calculate the next occurrence for both close and open
-  const times: Date[] = oh.periods.flatMap((p) => [
+  const times: Date[] = oh.periods.flatMap((p: any) => [
     getNextOccurrence(p.close),
     getNextOccurrence(p.open),
   ]);
@@ -119,5 +125,17 @@ export function calculateNextRelevantTime(
     ` ${formattedTime} ` +
     (openNow ? "today" : nextLabel);
 
-  return { nextDateHumanReadableString, nextDate, nextLabel, openNow };
+  const nextDateHumanReadableObject: NextDateHumanReadableObject = {
+    nextTimeString: openNow ? "today" : nextLabel,
+    status: openNow ? "open" : "closed",
+    nextTime: formattedTime,
+  };
+
+  return {
+    nextDateHumanReadableObject,
+    nextDateHumanReadableString,
+    nextDate,
+    nextLabel,
+    openNow,
+  };
 }

@@ -16,3 +16,9 @@ export type PlaceDetails = {
   };
   [k: string]: any;
 };
+
+export type NextDateHumanReadableObject = {
+  status: "open" | "closed";
+  nextTimeString: string;
+  nextTime: string;
+};
