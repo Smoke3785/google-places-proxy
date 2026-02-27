@@ -179,3 +179,12 @@ export function hr(message: string) {
 
   return `${hr}${left}${message}${right}${hr}`;
 }
+
+export function isValidTimeZone(timeZone: string): boolean {
+  try {
+    const dt = DateTime.now().setZone(timeZone);
+    return dt.isValid;
+  } catch {
+    return false;
+  }
+}

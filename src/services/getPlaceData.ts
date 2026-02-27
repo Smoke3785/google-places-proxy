@@ -16,6 +16,7 @@ import type { PlaceDetails } from "../types";
 
 type GetPlaceDataParams = {
   googleKey: string;
+  timeZone?: string;
   placeId: string;
 };
 
@@ -31,6 +32,7 @@ type GetPlaceDataResponse = Promise<
 >;
 
 export async function getPlaceData({
+  timeZone = "UTC",
   googleKey,
   placeId,
 }: GetPlaceDataParams): GetPlaceDataResponse {

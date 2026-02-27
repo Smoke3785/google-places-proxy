@@ -5,15 +5,14 @@ import chalk from "chalk";
 import { initializeDatabase, logRequest, getRequestLogs } from "./database";
 import { getPlaceData, calculateNextRelevantTime } from "./services";
 import { CACHE_FILE, TTL, getConfigLog } from "./config";
-import { cache, persistCache } from "./cache";
+import { cache } from "./cache";
 import {
-  normalizeGoogleApiResponse,
+  isValidTimeZone,
   getLatencyColor,
   getTimestamp,
   getCodeColor,
-  isOpenNow,
-  hr,
   getTimeNow,
+  hr,
 } from "./utils";
 
 // Types
@@ -102,16 +101,23 @@ app.get("/stats", async (req, res) => {
 app.get("/places/:placeId", async (req, res) => {
   res.locals.logMe = true;
 
-  const placeId = req.params.placeId;
+  const timeZone = (req.query.timeZone as string) || "UTC";
   const googleKey = (req.query.key as string) || "";
+  const placeId = req.params.placeId;
 
   if (!googleKey) {
     res.status(400).json({ error: "Missing API key in `?key=`" });
     return;
   }
 
+  if (!isValidTimeZone(timeZone)) {
+    res.status(400).json({ error: "Invalid time zone in `?timeZone=`" });
+    return;
+  }
+
   const { data, error } = await getPlaceData({
     googleKey,
+    timeZone,
     placeId,
   });
 
